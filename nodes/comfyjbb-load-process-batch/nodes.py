@@ -140,7 +140,7 @@ class LoadAndProcessImageBatch(ComfyNodeABC):
                 "index": ("INT", {"default": 0, "min": 0}),
                 "seed": ("INT", {"default": 0}),
                 "label": (IO.STRING, {"default": ""}),
-                "dry_run": (IO.BOOL, {"default": True, "tooltip": "If true, do not move files; useful for testing."}),
+                "dry_run": (IO.BOOL, {"default": False, "tooltip": "If true, do not move files; useful for testing."}),
             }
         }
 
@@ -167,7 +167,7 @@ class LoadAndProcessImageBatch(ComfyNodeABC):
             return files[idx]
         return files[0]
 
-    def process_next(self, batch_path: str, processed_path: str, bypass_path: str, mode: str = "incremental", index: int = 0, seed: int = 0, label: str = "", dry_run: bool = True):
+    def process_next(self, batch_path: str, processed_path: str, bypass_path: str, mode: str = "incremental", index: int = 0, seed: int = 0, label: str = "", dry_run: bool = False):
         batch_path, processed_path, bypass_path = self._normalize_paths(batch_path, processed_path, bypass_path)
         _ensure_dir(batch_path)
         _ensure_dir(processed_path)
