@@ -189,15 +189,16 @@ class LoadAndProcessImageBatch(ComfyNodeABC):
 
         try:
             if ext in COMMON_IMAGE_EXTS or ext in HEIC_EXTS:
-                images, mask = _load_with_inputimpl_or_pillow(claimed.replace(".processing", ""))
+                # Load from the claimed (processing) file — the original path has been renamed
+                images, mask = _load_with_inputimpl_or_pillow(claimed)
             elif ext in RAW_EXTS:
                 try:
-                    images, mask = _load_raw_image(claimed.replace(".processing", ""))
+                    images, mask = _load_raw_image(claimed)
                 except Exception as re:
                     logger.warning(f"RAW load failed for {chosen}: {re}")
                     if dry_run == "false":
                         _finalize_move(claimed, bypass_path, original_name)
-                    raise RuntimeError(f"RAW load failed for {chosen}: {re}")
+                    raise RuntimeError(f"RAW load failed for {chosen}: {re}") from re
             else:
                 logger.info(f"Bypassing unknown extension for {chosen}")
                 if dry_run == "false":
@@ -208,7 +209,8 @@ class LoadAndProcessImageBatch(ComfyNodeABC):
                 _finalize_move(claimed, processed_path, original_name)
 
             return (images, original_name)
-        except Exception as e:
+        except Exception:
+            # Ensure failed processing results in file moved to bypass (if still present)
             try:
                 if os.path.exists(claimed):
                     if dry_run == "false":
