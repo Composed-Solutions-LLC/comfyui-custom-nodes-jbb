@@ -133,6 +133,9 @@ class LoadImagePlusHEIC:
             "required": {
                 "image": (files, {"image_upload": True}),
             },
+            "optional": {
+                "image_path_override": ("STRING", {"default": ""}),
+            },
         }
 
     CATEGORY = "image"
@@ -140,8 +143,14 @@ class LoadImagePlusHEIC:
     RETURN_TYPES = ("IMAGE", "MASK")
     FUNCTION = "load_image"
 
-    def load_image(self, image):
-        if _is_heic_path(image) and not _try_register_heif_opener():
+    def load_image(self, image, image_path_override=""):
+        # Use override if provided and valid, otherwise use dropdown selection
+        if image_path_override and image_path_override.strip():
+            image_to_load = image_path_override
+        else:
+            image_to_load = image
+
+        if _is_heic_path(image_to_load) and not _try_register_heif_opener():
             raise RuntimeError(
                 "HEIC/HEIF support is not available. Install dependency: pip install pillow-heif"
             )
@@ -150,20 +159,20 @@ class LoadImagePlusHEIC:
 
         folder_paths, node_helpers = _get_comfy_modules()
 
-        if not folder_paths.exists_annotated_filepath(image):
-            raise FileNotFoundError(f"Image not found in input path: {image}")
+        if not folder_paths.exists_annotated_filepath(image_to_load):
+            raise FileNotFoundError(f"Image not found in input path: {image_to_load}")
 
-        image_path = folder_paths.get_annotated_filepath(image)
+        image_path = folder_paths.get_annotated_filepath(image_to_load)
 
         try:
             img = node_helpers.pillow(Image.open, image_path)
         except Exception as e:
-            if _is_heic_path(image):
+            if _is_heic_path(image_to_load):
                 raise RuntimeError(
                     "Failed to open HEIC/HEIF image. Ensure pillow-heif is installed: pip install pillow-heif\n"
-                    f"File: {image}\nError: {e}"
+                    f"File: {image_to_load}\nError: {e}"
                 )
-            raise RuntimeError(f"Failed to open image: {image}\nError: {e}")
+            raise RuntimeError(f"Failed to open image: {image_to_load}\nError: {e}")
 
         output_images = []
         output_masks = []
@@ -203,7 +212,7 @@ class LoadImagePlusHEIC:
             output_masks.append(mask_t.unsqueeze(0))
 
         if not output_images:
-            raise RuntimeError(f"No frames could be decoded from image: {image}")
+            raise RuntimeError(f"No frames could be decoded from image: {image_to_load}")
 
         if len(output_images) > 1 and getattr(img, "format", None) not in excluded_formats:
             output_image = torch.cat(output_images, dim=0)
@@ -215,9 +224,15 @@ class LoadImagePlusHEIC:
         return (output_image, output_mask)
 
     @classmethod
-    def IS_CHANGED(cls, image):
+    def IS_CHANGED(cls, image, image_path_override=""):
+        # Use override if provided, otherwise use dropdown selection
+        if image_path_override and image_path_override.strip():
+            image_to_check = image_path_override
+        else:
+            image_to_check = image
+
         folder_paths, _ = _get_comfy_modules()
-        image_path = folder_paths.get_annotated_filepath(image)
+        image_path = folder_paths.get_annotated_filepath(image_to_check)
         m = hashlib.sha256()
         with open(image_path, "rb") as f:
             for chunk in iter(lambda: f.read(1024 * 1024), b""):
@@ -225,10 +240,17 @@ class LoadImagePlusHEIC:
         return m.digest().hex()
 
     @classmethod
-    def VALIDATE_INPUTS(cls, image):
+    def VALIDATE_INPUTS(cls, image, image_path_override=""):
         folder_paths, _ = _get_comfy_modules()
-        if not folder_paths.exists_annotated_filepath(image):
-            return "Invalid image file: {}".format(image)
+        
+        # Determine which image path to validate
+        if image_path_override and image_path_override.strip():
+            image_to_validate = image_path_override
+        else:
+            image_to_validate = image
+        
+        if not folder_paths.exists_annotated_filepath(image_to_validate):
+            return "Invalid image file: {}".format(image_to_validate)
         return True
 
 
