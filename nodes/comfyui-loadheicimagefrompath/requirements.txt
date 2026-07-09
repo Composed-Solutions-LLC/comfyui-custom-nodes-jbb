@@ -1,2 +1,0 @@
-pillow>=10
-pillow-heif>=0.20.0
