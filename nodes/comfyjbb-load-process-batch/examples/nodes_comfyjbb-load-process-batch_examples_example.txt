@@ -1,0 +1,2 @@
+This is a test file for the COMFYJBB Load & Process Image Batch node.
+It is intentionally not an image so the node should bypass it.
