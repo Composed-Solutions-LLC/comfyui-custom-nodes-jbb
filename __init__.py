@@ -18,8 +18,12 @@ def _merge_module_mappings(module_path: str, register_preview_route: bool = Fals
     except Exception:
         return
 
-    class_mappings = getattr(node_module, "NODE_CLASS_MAPPINGS", {}) or {}
-    display_mappings = getattr(node_module, "NODE_DISPLAY_NAME_MAPPINGS", {}) or {}
+    class_mappings = getattr(node_module, "NODE_CLASS_MAPPINGS", {})
+    display_mappings = getattr(node_module, "NODE_DISPLAY_NAME_MAPPINGS", {})
+    if not isinstance(class_mappings, dict):
+        return
+    if not isinstance(display_mappings, dict):
+        display_mappings = {}
 
     for key, value in class_mappings.items():
         NODE_CLASS_MAPPINGS.setdefault(key, value)
