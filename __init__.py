@@ -36,7 +36,9 @@ def _merge_module_mappings(module_path: str, register_preview_route: bool = Fals
 
     if register_preview_route:
         try:
-            node_module._register_preview_route_if_possible()
+            register_route = getattr(node_module, "_register_preview_route_if_possible", None)
+            if callable(register_route):
+                register_route()
         except Exception:
             pass
 
